@@ -1,13 +1,26 @@
 package storer
 
-import "go.mongodb.org/mongo-driver/mongo"
+import (
+	"go.mongodb.org/mongo-driver/mongo"
+)
 
 type Storer struct {
-	db *mongo.Client
+	db          *mongo.Client
+	collections *Collections
 }
 
-func NewStorer(db *mongo.Client) *Storer {
+type Collections struct {
+	Space *mongo.Collection
+}
+
+func NewStorer(db *mongo.Client, collections *Collections) *Storer {
 	return &Storer{
-		db: db,
+		db:          db,
+		collections: collections,
 	}
+}
+
+func MakeCollection(client *mongo.Client, collectionName string) *mongo.Collection {
+	collection := client.Database("testimonials").Collection(collectionName)
+	return collection
 }
