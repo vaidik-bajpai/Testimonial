@@ -10,7 +10,8 @@ type Storer struct {
 }
 
 type Collections struct {
-	Space *mongo.Collection
+	Space       *mongo.Collection
+	Testimonial *mongo.Collection
 }
 
 func NewStorer(db *mongo.Client, collections *Collections) *Storer {

@@ -15,16 +15,23 @@ func RegisterRoutes(h *handler) *gin.Engine {
 	space := r.Group("/space")
 	{
 		space.POST("", h.createSpaceHandler())
-		space.PATCH("/:id", h.updateSpaceHandler())
-		space.DELETE("/:id", h.deleteSpaceHandler())
+		space.PATCH("/:spaceID", h.updateSpaceHandler())
+		space.DELETE("/:spaceID", h.deleteSpaceHandler())
 		space.GET("", h.listSpaceHandler())
-		space.GET("/:id", h.getSpaceHandler())
+		space.GET("/:spaceID", h.getSpaceHandler())
 	}
 
-	testimonials := r.Group("/:id")
+	testimonials := r.Group("/:spaceID")
 	{
 		testimonials.POST("/text-testimonial", h.createTextTestimonialHandler())
 		testimonials.POST("/video-testimonial", h.createVideoTestimonialHandler())
+		subGroup := testimonials.Group("/testimonials")
+		{
+			subGroup.GET("", h.listTestimonialsHandler())
+			subGroup.GET("/:tID", h.getTestimonialHandler())
+			subGroup.PATCH("/:tID", h.updateTestimonialHandler())
+			subGroup.DELETE("/:tID", h.deleteTestimonialHandler())
+		}
 	}
 
 	return r

@@ -27,10 +27,10 @@ func main() {
 	defer database.Close()
 
 	client := database.GetDB()
+	spaceCollection := storer.MakeCollection(client, "space")
+	testimonialCollection := storer.MakeCollection(client, "testimonial")
 
-	spaceCollection := storer.MakeCollection(client, "Space")
-
-	st := storer.NewStorer(client, &storer.Collections{Space: spaceCollection})
+	st := storer.NewStorer(client, &storer.Collections{Space: spaceCollection, Testimonial: testimonialCollection})
 	hdl := handler.NewHandler(context.Background(), st)
 	handler.RegisterRoutes(hdl)
 	handler.Start(":8080")

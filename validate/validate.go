@@ -1,10 +1,11 @@
 package validate
 
 import (
-	"fmt"
+	"strings"
 
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
+	"github.com/vaidik-bajpai/testimonials/storer"
 )
 
 func RegisterValidators() bool {
@@ -38,27 +39,30 @@ var atLeastOne validator.Func = func(fl validator.FieldLevel) bool {
 }
 
 var atLeastName validator.Func = func(fl validator.FieldLevel) bool {
-	userInfos, ok := fl.Field().Interface().([]string)
-	fmt.Println(userInfos)
-	hasName := false
+	userInfos, ok := fl.Field().Interface().([]storer.Field)
 	if !ok {
 		return false
 	}
 
-	if len(userInfos) > 8 {
+	length := len(userInfos)
+	if length <= 0 || length > 8 {
 		return false
 	}
 
-	for _, info := range userInfos {
-		if len(info) < 4 {
+	checkDup := make(map[string]bool)
+
+	for _, fieldInfo := range userInfos {
+		fieldName := strings.ToLower(fieldInfo.FieldName)
+		if !checkDup[fieldName] {
+			checkDup[fieldName] = true
+		} else {
 			return false
-		}
-		if info == "name" {
-			hasName = true
 		}
 	}
 
-	return true && hasName
+	uniqueLen := len(checkDup)
+
+	return (uniqueLen == length) && checkDup["name"]
 }
 
 var typesAllowed validator.Func = func(fl validator.FieldLevel) bool {

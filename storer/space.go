@@ -6,7 +6,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -44,16 +43,17 @@ func (s *Storer) DeleteSpace(ctx context.Context, id primitive.ObjectID) error {
 	return nil
 }
 
-func (s *Storer) GetSpace(ctx context.Context, space *GetSpaceRes) error {
-	err := s.collections.Space.FindOne(ctx, bson.M{"_id": space.ID}).Decode(&space)
+func (s *Storer) GetSpace(ctx context.Context, id primitive.ObjectID) (GetSpaceRes, error) {
+	var space GetSpaceRes
+	err := s.collections.Space.FindOne(ctx, bson.M{"_id": id}).Decode(&space)
 	if err != nil {
-		return err
+		return GetSpaceRes{}, err
 	}
 
-	return nil
+	return space, nil
 }
 
-func (s *Storer) ListSpace(ctx context.Context) (*mongo.Cursor, error) {
+func (s *Storer) ListSpace(ctx context.Context) ([]ListSpaceRes, error) {
 	findOpts := options.Find().SetProjection(bson.M{
 		"_id":   1,
 		"title": 1,
@@ -64,6 +64,21 @@ func (s *Storer) ListSpace(ctx context.Context) (*mongo.Cursor, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer cur.Close(context.Background())
 
-	return cur, err
+	var spaces []ListSpaceRes
+
+	for cur.Next(context.Background()) {
+		var space ListSpaceRes
+		if err := cur.Decode(&space); err != nil {
+			return nil, err
+		}
+		spaces = append(spaces, space)
+	}
+
+	if err := cur.Err(); err != nil {
+		return nil, err
+	}
+
+	return spaces, err
 }

@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"path/filepath"
 
 	"github.com/gin-gonic/gin"
 	"github.com/vaidik-bajpai/testimonials/storer"
@@ -16,42 +14,13 @@ import (
 func (h *handler) createSpaceHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var space *storer.Space
-		if err := c.Bind(&space); err != nil {
+		if err := c.BindJSON(&space); err != nil {
 			log.Println(err)
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error": "could n't decode the request body",
 			})
 			return
 		}
-
-		logo, err := c.FormFile("logo")
-		if err != nil {
-			log.Println(err)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "could n't decode the image",
-			})
-			return
-		}
-
-		rootDir, err := os.Getwd()
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get working directory"})
-			return
-		}
-
-		imagesDir := filepath.Join(rootDir, "images")
-		filePath := filepath.Join(imagesDir, logo.Filename)
-
-		err = c.SaveUploadedFile(logo, filePath)
-		if err != nil {
-			log.Println(err)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "could n't upload the image",
-			})
-			return
-		}
-
-		space.Logo = filePath
 
 		id, err := h.storer.CreateSpace(h.ctx, space)
 		if err != nil {
@@ -63,7 +32,7 @@ func (h *handler) createSpaceHandler() gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusCreated, gin.H{
-			"link": fmt.Sprintf("http://localhost:8080/%s", id.String()),
+			"link": fmt.Sprint("http://localhost:8080/", id),
 		})
 	}
 }
@@ -105,9 +74,7 @@ func (h *handler) getSpaceHandler() gin.HandlerFunc {
 			return
 		}
 
-		var space storer.GetSpaceRes
-		space.ID = objID
-		err = h.storer.GetSpace(h.ctx, &space)
+		space, err := h.storer.GetSpace(h.ctx, objID)
 		if err != nil {
 			log.Println(err)
 			if err == mongo.ErrNoDocuments {
@@ -126,27 +93,10 @@ func (h *handler) listSpaceHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var spaces []storer.ListSpaceRes
 
-		cur, err := h.storer.ListSpace(h.ctx)
+		spaces, err := h.storer.ListSpace(h.ctx)
 		if err != nil {
 			log.Println(err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve spaces"})
-			return
-		}
-		defer cur.Close(c.Request.Context())
-
-		for cur.Next(c.Request.Context()) {
-			var space storer.ListSpaceRes
-			if err := cur.Decode(&space); err != nil {
-				log.Println(err)
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode space data"})
-				return
-			}
-			spaces = append(spaces, space)
-		}
-
-		if err := cur.Err(); err != nil {
-			log.Println(err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error occurred while iterating through spaces"})
 			return
 		}
 
